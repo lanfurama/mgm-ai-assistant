@@ -1,0 +1,28 @@
+{
+  "name": "mgm-ai-assistant",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:backend && vite build",
+    "build:backend": "cd backend && npm run build",
+    "preview": "vite preview",
+    "install:all": "npm install && cd backend && npm install"
+  },
+  "dependencies": {
+    "lucide-react": "^0.563.0",
+    "xlsx": "^0.18.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^8.2.2",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
