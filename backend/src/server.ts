@@ -1,94 +1,71 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import os from 'os';
+import { config } from './config/index.js';
+import { pool } from './config/database.js';
+import { requestLogger } from './middleware/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import productRoutes from './routes/products.js';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 8000;
-const FRONTEND_URL = process.env.FRONTEND_URL;
 
-// Auto-detect server IP addresses
-const getServerIPs = (): string[] => {
-  const interfaces = os.networkInterfaces();
-  const ips: string[] = [];
-  
-  Object.keys(interfaces).forEach((name) => {
-    const nets = interfaces[name];
-    if (nets) {
-      nets.forEach((net) => {
-        // Skip internal (loopback) and non-IPv4 addresses
-        if (net.family === 'IPv4' && !net.internal) {
-          ips.push(net.address);
-        }
-      });
-    }
-  });
-  
-  return ips;
-};
-
-// CORS configuration: 
-// - If FRONTEND_URL is set, use it
-// - If FRONTEND_URL is '*', allow all origins (for reverse proxy setups)
-// - Otherwise, allow requests from same origin (works with reverse proxy)
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!FRONTEND_URL || FRONTEND_URL === '*') {
-      // Allow all origins (useful when behind reverse proxy)
+    const frontendUrl = config.cors.frontendUrl;
+    
+    if (frontendUrl === '*') {
       callback(null, true);
-    } else if (FRONTEND_URL.includes(',')) {
-      // Multiple allowed origins
-      const allowedOrigins = FRONTEND_URL.split(',').map(url => url.trim());
-      if (!origin || allowedOrigins.includes(origin)) {
+      return;
+    }
+    
+    if (Array.isArray(frontendUrl)) {
+      if (!origin || frontendUrl.includes(origin)) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
     } else {
-      // Single allowed origin
-      if (!origin || origin === FRONTEND_URL || origin.startsWith(FRONTEND_URL)) {
+      if (!origin || origin === frontendUrl || origin.startsWith(frontendUrl)) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
     }
+    
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 };
 
 app.use(cors(corsOptions));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res, next) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 });
 
 app.use('/api/products', productRoutes);
 
-// Log detected origins for debugging
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && origin !== req.headers.host) {
-    console.log(`[CORS] Request from origin: ${origin}`);
-  }
-  next();
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-app.listen(PORT, '0.0.0.0', () => {
-  const serverIPs = getServerIPs();
+app.listen(config.port, '0.0.0.0', () => {
   console.log('\n=== Server Started ===');
-  console.log(`Local:   http://localhost:${PORT}`);
-  if (serverIPs.length > 0) {
-    console.log('Network:');
-    serverIPs.forEach(ip => {
-      console.log(`         http://${ip}:${PORT}`);
-    });
-  }
-  console.log(`\nCORS Config: ${FRONTEND_URL || '* (auto-detect - allows all origins)'}`);
+  console.log(`Port: ${config.port}`);
+  console.log(`Environment: ${config.nodeEnv}`);
+  console.log(`CORS: ${Array.isArray(config.cors.frontendUrl) ? config.cors.frontendUrl.join(', ') : config.cors.frontendUrl}`);
   console.log('=====================\n');
 });

@@ -9,8 +9,8 @@ export const config = {
   googleTranslateApiKey: import.meta.env.VITE_GOOGLE_TRANSLATE_API_KEY || '',
 
   // Backend REST API (your own server)
-  // If VITE_API_BASE_URL is set, use it
-  // Otherwise, ApiClient will auto-detect from window.location (server IP/domain)
+  // If VITE_API_BASE_URL is set, use it (e.g., http://api.example.com or http://192.168.1.100:8000)
+  // If empty, use relative URLs (works with reverse proxy)
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
 
   isDevelopment: import.meta.env.DEV,
