@@ -26,40 +26,85 @@ export const useProducts = () => {
   }, [loadProducts]);
 
   const addProduct = useCallback(async (name: string) => {
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimisticProduct: Product = {
+      id: tempId,
+      name: name.trim(),
+      description: '',
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    setProducts(prev => [...prev, optimisticProduct]);
+
     try {
       const newProduct = await ProductApiService.create(name, 'manual');
-      setProducts(prev => [...prev, newProduct]);
+      setProducts(prev => prev.map(p => p.id === tempId ? newProduct : p));
+      return newProduct;
     } catch (err) {
+      setProducts(prev => prev.filter(p => p.id !== tempId));
       throw err;
     }
   }, []);
 
   const addProducts = useCallback(async (names: string[]) => {
+    const tempProducts: Product[] = names.map((name, idx) => ({
+      id: `temp-${Date.now()}-${idx}`,
+      name: name.trim(),
+      description: '',
+      status: 'pending' as ProductStatus,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+    setProducts(prev => [...prev, ...tempProducts]);
+    const tempIds = tempProducts.map(p => p.id);
+
     try {
       const newProducts = await ProductApiService.batchCreate(names, 'excel');
-      setProducts(prev => [...prev, ...newProducts]);
+      setProducts(prev => {
+        const withoutTemp = prev.filter(p => !tempIds.includes(p.id));
+        return [...withoutTemp, ...newProducts];
+      });
+      return newProducts;
     } catch (err) {
+      setProducts(prev => prev.filter(p => !tempIds.includes(p.id)));
       throw err;
     }
   }, []);
 
   const removeProduct = useCallback(async (id: string) => {
+    const productToRemove = products.find(p => p.id === id);
+    if (!productToRemove) return;
+
+    setProducts(prev => prev.filter(p => p.id !== id));
+
     try {
       await ProductApiService.delete(id);
-      setProducts(prev => prev.filter(p => p.id !== id));
     } catch (err) {
-      console.error('Error deleting product:', err);
+      setProducts(prev => {
+        const index = prev.findIndex(p => p.id === id);
+        if (index === -1) {
+          return [...prev, productToRemove].sort((a, b) => 
+            (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0)
+          );
+        }
+        return prev;
+      });
       throw err;
     }
-  }, []);
+  }, [products]);
 
   const clearAll = useCallback(async () => {
+    const previousProducts = [...products];
+    setProducts([]);
+
     try {
-      const deletePromises = products.map(p => ProductApiService.delete(p.id));
+      const deletePromises = previousProducts.map(p => ProductApiService.delete(p.id));
       await Promise.all(deletePromises);
-      setProducts([]);
     } catch (err) {
-      console.error('Error clearing products:', err);
+      setProducts(previousProducts);
       throw err;
     }
   }, [products]);

@@ -18,15 +18,22 @@ export const config = {
 } as const;
 
 export const validateConfig = (): void => {
+  console.log('Vertex AI Config:', {
+    hasApiKey: !!config.vertexApiKey,
+    projectId: config.vertexProjectId,
+    location: config.vertexLocation,
+    endpointId: config.vertexEndpointId,
+  });
+
   if (!config.vertexApiKey) {
-    console.warn('VITE_VERTEX_AI_API_KEY is not set');
+    console.error('❌ VITE_VERTEX_AI_API_KEY is not set');
   }
 
   if (!config.vertexProjectId) {
-    console.warn('VITE_VERTEX_AI_PROJECT_ID is not set');
+    console.error('❌ VITE_VERTEX_AI_PROJECT_ID is not set');
   }
 
   if (!config.vertexLocation) {
-    console.warn('VITE_VERTEX_AI_LOCATION is not set');
+    console.error('❌ VITE_VERTEX_AI_LOCATION is not set');
   }
 };

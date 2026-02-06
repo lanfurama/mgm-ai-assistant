@@ -71,6 +71,13 @@ export class ProductService {
     );
   }
 
+  static normalizeName(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ');
+  }
+
   static async processBatch(
     products: Product[],
     batch: Product[],
@@ -81,28 +88,41 @@ export class ProductService {
 
     try {
       const results = await getProductDescriptions(batchNames);
+      
+      console.log('AI Results:', results.map(r => r.name));
+      console.log('Batch Names:', batchNames);
 
-      batch.forEach(item => {
-        const aiResult = results.find(r =>
-          r.name.toLowerCase().trim() === item.name.toLowerCase().trim()
-        );
-
+      batch.forEach((item, index) => {
         const idx = updatedProducts.findIndex(p => p.id === item.id);
-        if (idx !== -1) {
-          if (aiResult) {
-            updatedProducts[idx] = {
-              ...updatedProducts[idx],
-              description: aiResult.description,
-              status: 'completed',
-              updatedAt: new Date(),
-            };
-          } else {
-            updatedProducts[idx] = {
-              ...updatedProducts[idx],
-              status: 'error',
-              updatedAt: new Date(),
-            };
-          }
+        if (idx === -1) return;
+
+        // Try to match by name first (normalized)
+        let aiResult = results.find(r => {
+          const normalizedAiName = this.normalizeName(r.name);
+          const normalizedItemName = this.normalizeName(item.name);
+          return normalizedAiName === normalizedItemName;
+        });
+
+        // Fallback: match by index if count matches and no name match found
+        if (!aiResult && results.length === batch.length) {
+          aiResult = results[index];
+          console.warn(`Using index-based matching for "${item.name}" -> "${aiResult.name}"`);
+        }
+
+        if (aiResult) {
+          updatedProducts[idx] = {
+            ...updatedProducts[idx],
+            description: aiResult.description,
+            status: 'completed',
+            updatedAt: new Date(),
+          };
+        } else {
+          console.error(`No match found for product: "${item.name}"`);
+          updatedProducts[idx] = {
+            ...updatedProducts[idx],
+            status: 'error',
+            updatedAt: new Date(),
+          };
         }
       });
 
@@ -112,6 +132,7 @@ export class ProductService {
 
       return updatedProducts;
     } catch (error) {
+      console.error('Error processing batch:', error);
       batch.forEach(item => {
         const idx = updatedProducts.findIndex(p => p.id === item.id);
         if (idx !== -1) {

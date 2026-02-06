@@ -27,7 +27,7 @@ export const getProductDescriptions = async (
     const url =
       `https://${config.vertexLocation}-aiplatform.googleapis.com/v1/projects/` +
       `${config.vertexProjectId}/locations/${config.vertexLocation}` +
-      `/publishers/google/models/gemini-1.5-flash:generateContent` +
+      `/publishers/google/models/gemini-2.5-pro:generateContent` +
       `?key=${encodeURIComponent(config.vertexApiKey)}`;
 
     const prompt = `Bạn là chuyên gia quản lý nội dung sản phẩm cho siêu thị.
@@ -60,6 +60,7 @@ DANH SÁCH SẢN PHẨM CẦN VIẾT: ${productNames.join(' | ')}`;
     const body = {
       contents: [
         {
+          role: "user",
           parts: [{ text: prompt }],
         },
       ],

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 import { StatusBadge } from './StatusBadge';
@@ -9,6 +9,18 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleRemove = async () => {
+    setIsDeleting(true);
+    try {
+      await onRemove(product.id);
+    } catch (err) {
+      setIsDeleting(false);
+      throw err;
+    }
+  };
+
   return (
     <div className="p-6 hover:bg-slate-50/50 transition-all flex gap-5 group">
       <div className="flex-1">
@@ -45,17 +57,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) =
       </div>
       <div className="flex flex-col gap-2">
         <button
-          onClick={async () => {
-            try {
-              await onRemove(product.id);
-            } catch (err) {
-              console.error('Error removing product:', err);
-            }
-          }}
-          className="opacity-0 group-hover:opacity-100 p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-          title="Xóa"
+          onClick={handleRemove}
+          disabled={isDeleting}
+          className={`opacity-0 group-hover:opacity-100 p-2 rounded-xl transition-all ${
+            isDeleting
+              ? 'text-slate-400 cursor-not-allowed opacity-100'
+              : 'text-slate-200 hover:text-red-500 hover:bg-red-50'
+          }`}
+          title={isDeleting ? 'Đang xóa...' : 'Xóa'}
         >
-          <Trash2 className="w-4 h-4" />
+          {isDeleting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>

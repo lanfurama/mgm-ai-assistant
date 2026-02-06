@@ -75,7 +75,10 @@ export const useProductProcessing = (): UseProductProcessingReturn => {
           }
           updatedProducts = ProductService.markProductsAsError(updatedProducts, batchIds);
           setProducts(updatedProducts);
-          setError("Có lỗi xảy ra khi kết nối AI. Một số sản phẩm bị lỗi.");
+          const errorMessage = err instanceof Error 
+            ? `Lỗi khi xử lý: ${err.message}` 
+            : 'Có lỗi xảy ra khi kết nối AI. Một số sản phẩm bị lỗi.';
+          setError(errorMessage);
         }
       }
 
