@@ -5,14 +5,22 @@ class ApiClient {
   private baseURL: string;
 
   constructor(baseURL: string = config.apiBaseUrl) {
-    this.baseURL = baseURL;
+    // Remove trailing slash if present
+    this.baseURL = baseURL.trim().replace(/\/+$/, '');
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Ensure endpoint starts with /
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    
+    // If baseURL is empty, use relative URL (works with proxy/reverse proxy)
+    // If baseURL is set, concatenate it with endpoint (removes double slashes)
+    const url = this.baseURL 
+      ? `${this.baseURL}${normalizedEndpoint}`.replace(/([^:]\/)\/+/g, '$1')
+      : normalizedEndpoint;
     
     const defaultHeaders: HeadersInit = {
       'Content-Type': 'application/json',

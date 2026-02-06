@@ -9,9 +9,9 @@ export const config = {
   googleTranslateApiKey: import.meta.env.VITE_GOOGLE_TRANSLATE_API_KEY || '',
 
   // Backend REST API (your own server)
-  // In dev mode, use relative path to leverage Vite proxy
-  // In production, use full URL
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '' : 'http://localhost:8000'),
+  // Use relative path by default - works with Vite proxy in dev and reverse proxy in production
+  // Only use absolute URL if explicitly set via VITE_API_BASE_URL
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
 
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
