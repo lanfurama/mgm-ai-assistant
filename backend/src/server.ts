@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import os from 'os';
 import productRoutes from './routes/products.js';
 
 dotenv.config();
@@ -8,6 +9,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+
+// Auto-detect server IP addresses
+const getServerIPs = (): string[] => {
+  const interfaces = os.networkInterfaces();
+  const ips: string[] = [];
+  
+  Object.keys(interfaces).forEach((name) => {
+    const nets = interfaces[name];
+    if (nets) {
+      nets.forEach((net) => {
+        // Skip internal (loopback) and non-IPv4 addresses
+        if (net.family === 'IPv4' && !net.internal) {
+          ips.push(net.address);
+        }
+      });
+    }
+  });
+  
+  return ips;
+};
 
 // CORS configuration: 
 // - If FRONTEND_URL is set, use it
@@ -49,7 +70,25 @@ app.get('/health', (req, res) => {
 
 app.use('/api/products', productRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Frontend URL: ${FRONTEND_URL}`);
+// Log detected origins for debugging
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && origin !== req.headers.host) {
+    console.log(`[CORS] Request from origin: ${origin}`);
+  }
+  next();
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  const serverIPs = getServerIPs();
+  console.log('\n=== Server Started ===');
+  console.log(`Local:   http://localhost:${PORT}`);
+  if (serverIPs.length > 0) {
+    console.log('Network:');
+    serverIPs.forEach(ip => {
+      console.log(`         http://${ip}:${PORT}`);
+    });
+  }
+  console.log(`\nCORS Config: ${FRONTEND_URL || '* (auto-detect - allows all origins)'}`);
+  console.log('=====================\n');
 });

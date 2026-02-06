@@ -2,11 +2,32 @@ import { config } from '../config/env';
 import { ApiResponse, ApiError } from '../types';
 
 class ApiClient {
-  private baseURL: string;
-
-  constructor(baseURL: string = config.apiBaseUrl) {
-    // Remove trailing slash if present
-    this.baseURL = baseURL.trim().replace(/\/+$/, '');
+  private getBaseURL(): string {
+    // If explicitly set, use it
+    if (config.apiBaseUrl) {
+      return config.apiBaseUrl.trim().replace(/\/+$/, '');
+    }
+    
+    // Auto-detect from current location
+    if (typeof window !== 'undefined') {
+      const backendPort = import.meta.env.VITE_API_PORT || '8000';
+      const currentPort = window.location.port;
+      const isDefaultPort = !currentPort || currentPort === '' || 
+                           (window.location.protocol === 'https:' && currentPort === '443') ||
+                           (window.location.protocol === 'http:' && currentPort === '80');
+      
+      // Same port or default port - use relative URLs (works with proxy/reverse proxy)
+      // This is the best approach as it works with reverse proxy and same-origin setups
+      if (isDefaultPort || currentPort === backendPort) {
+        return '';
+      }
+      
+      // Different port - auto-detect and construct URL from current hostname
+      // This automatically uses the server's IP/domain
+      return `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+    }
+    
+    return '';
   }
 
   private async request<T>(
@@ -16,10 +37,13 @@ class ApiClient {
     // Ensure endpoint starts with /
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
+    // Get base URL dynamically (auto-detects server IP/domain)
+    const baseURL = this.getBaseURL();
+    
     // If baseURL is empty, use relative URL (works with proxy/reverse proxy)
     // If baseURL is set, concatenate it with endpoint (removes double slashes)
-    const url = this.baseURL 
-      ? `${this.baseURL}${normalizedEndpoint}`.replace(/([^:]\/)\/+/g, '$1')
+    const url = baseURL 
+      ? `${baseURL}${normalizedEndpoint}`.replace(/([^:]\/)\/+/g, '$1')
       : normalizedEndpoint;
     
     const defaultHeaders: HeadersInit = {
