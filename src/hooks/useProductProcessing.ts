@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Product } from '../types';
 import { ProductService } from '../services/productService';
-import { ProductApiService } from '../services/productApiService';
+import { ProductStorageService } from '../services/productStorageService';
 
 interface UseProductProcessingReturn {
   isLoading: boolean;
@@ -26,17 +26,11 @@ export const useProductProcessing = (): UseProductProcessingReturn => {
       setError(null);
 
       const productIds = pendingProducts.map(p => p.id);
-      
-      for (const id of productIds) {
-        try {
-          await ProductApiService.updateStatus(id, 'processing');
-        } catch (err) {
-          console.error('Error updating status to processing:', err);
-        }
-      }
+      let updatedProducts = ProductService.markProductsAsProcessing(products, productIds);
+      setProducts(updatedProducts);
+      ProductStorageService.saveAll(updatedProducts);
 
       const batchSize = 3;
-      let updatedProducts = [...products];
 
       for (let i = 0; i < pendingProducts.length; i += batchSize) {
         const batch = pendingProducts.slice(i, i + batchSize);
@@ -46,35 +40,16 @@ export const useProductProcessing = (): UseProductProcessingReturn => {
             updatedProducts,
             batch,
             async (progressProducts) => {
-              for (const product of progressProducts) {
-                const original = updatedProducts.find(p => p.id === product.id);
-                if (original && original.status !== product.status) {
-                  try {
-                    if (product.status === 'completed') {
-                      await ProductApiService.updateDescription(product.id, product.description);
-                    } else if (product.status === 'error') {
-                      await ProductApiService.updateStatus(product.id, 'error');
-                    }
-                  } catch (err) {
-                    console.error('Error updating product in API:', err);
-                  }
-                }
-              }
               setProducts(progressProducts);
+              ProductStorageService.saveAll(progressProducts);
               updatedProducts = progressProducts;
             }
           );
         } catch (err) {
           const batchIds = batch.map(p => p.id);
-          for (const id of batchIds) {
-            try {
-              await ProductApiService.updateStatus(id, 'error');
-            } catch (apiErr) {
-              console.error('Error updating status to error:', apiErr);
-            }
-          }
           updatedProducts = ProductService.markProductsAsError(updatedProducts, batchIds);
           setProducts(updatedProducts);
+          ProductStorageService.saveAll(updatedProducts);
           const errorMessage = err instanceof Error 
             ? `Lỗi khi xử lý: ${err.message}` 
             : 'Có lỗi xảy ra khi kết nối AI. Một số sản phẩm bị lỗi.';

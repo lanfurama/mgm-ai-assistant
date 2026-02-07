@@ -9,62 +9,30 @@ AI-powered product description generator for e-commerce.
 ## Project Structure
 
 ```
-├── backend/          # Backend API server
-│   ├── src/
-│   │   ├── config/   # Database configuration
-│   │   ├── models/   # Database models
-│   │   ├── routes/   # API routes
-│   │   └── server.ts # Express server
-│   └── package.json
 ├── src/              # Frontend React app
-│   ├── api/          # API service layer
+│   ├── api/          # Vertex AI (Gemini) API
 │   ├── components/   # UI components
 │   ├── config/       # Configuration
 │   ├── hooks/        # Custom React hooks
-│   ├── models/       # Data models
-│   ├── services/     # Business logic
+│   ├── services/     # Business logic & localStorage
 │   ├── types/        # TypeScript types
 │   └── utils/        # Utilities
+├── index.html
+└── vite.config.ts
 ```
 
 ## Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
-
-## Setup Database
-
-1. Create PostgreSQL database:
-```sql
-CREATE DATABASE mgm_ai_assistant;
-```
-
-2. Run SQL script to create tables:
-```bash
-psql -U postgres -d mgm_ai_assistant -f database.sql
-```
 
 ## Installation
 
-1. Install all dependencies (frontend + backend):
+1. Install dependencies:
 ```bash
-npm run install:all
+npm install
 ```
 
-2. Setup backend environment:
-   - Create `backend/.env` file:
-```bash
-PORT=8000
-NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mgm_ai_assistant
-DB_USER=postgres
-DB_PASSWORD=your_password
-FRONTEND_URL=http://localhost:3000
-```
-
-3. Setup frontend environment:
+2. Setup environment:
    - Create `.env.local` file:
 ```bash
 VITE_VERTEX_AI_API_KEY=your_vertex_ai_api_key
@@ -75,21 +43,25 @@ VITE_VERTEX_AI_ENDPOINT_ID=your_endpoint_id
 
 ## Run Application
 
-Run both frontend and backend with a single command:
 ```bash
 npm run dev
 ```
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8000` (proxied through frontend)
-- API calls from frontend automatically proxy to backend via Vite
+- Frontend: `http://localhost:3004`
+
+## Build for Production
+
+```bash
+npm run build
+```
+
+Output is in `dist/` directory. Deploy as static files to any web server or CDN.
 
 ## Features
 
 - Add products manually or via Excel file
 - AI-powered SEO-optimized product descriptions (Vertex AI)
-- PostgreSQL database integration
-- RESTful API backend
+- Products stored in browser localStorage
 - Batch processing with progress tracking
 - Export results to Excel
 - Real-time product status updates

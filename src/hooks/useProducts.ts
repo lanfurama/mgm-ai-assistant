@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Product, ProductStatus } from '../types';
-import { ProductApiService } from '../services/productApiService';
+import { ProductStorageService } from '../services/productStorageService';
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -11,7 +11,7 @@ export const useProducts = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await ProductApiService.getAll();
+      const data = await ProductStorageService.getAll();
       setProducts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
@@ -39,7 +39,7 @@ export const useProducts = () => {
     setProducts(prev => [...prev, optimisticProduct]);
 
     try {
-      const newProduct = await ProductApiService.create(name, 'manual');
+      const newProduct = await ProductStorageService.create(name, 'manual');
       setProducts(prev => prev.map(p => p.id === tempId ? newProduct : p));
       return newProduct;
     } catch (err) {
@@ -62,7 +62,7 @@ export const useProducts = () => {
     const tempIds = tempProducts.map(p => p.id);
 
     try {
-      const newProducts = await ProductApiService.batchCreate(names, 'excel');
+      const newProducts = await ProductStorageService.batchCreate(names, 'excel');
       setProducts(prev => {
         const withoutTemp = prev.filter(p => !tempIds.includes(p.id));
         return [...withoutTemp, ...newProducts];
@@ -81,7 +81,7 @@ export const useProducts = () => {
     setProducts(prev => prev.filter(p => p.id !== id));
 
     try {
-      await ProductApiService.delete(id);
+      await ProductStorageService.delete(id);
     } catch (err) {
       setProducts(prev => {
         const index = prev.findIndex(p => p.id === id);
@@ -101,8 +101,7 @@ export const useProducts = () => {
     setProducts([]);
 
     try {
-      const deletePromises = previousProducts.map(p => ProductApiService.delete(p.id));
-      await Promise.all(deletePromises);
+      ProductStorageService.clear();
     } catch (err) {
       setProducts(previousProducts);
       throw err;
@@ -111,7 +110,7 @@ export const useProducts = () => {
 
   const updateProductStatus = useCallback(async (id: string, status: ProductStatus) => {
     try {
-      const updated = await ProductApiService.updateStatus(id, status);
+      const updated = await ProductStorageService.updateStatus(id, status);
       setProducts(prev => prev.map(p => p.id === id ? updated : p));
     } catch (err) {
       console.error('Error updating product status:', err);

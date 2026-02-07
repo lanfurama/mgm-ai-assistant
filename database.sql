@@ -1,3 +1,6 @@
+-- DEPRECATED: Không dùng khi chạy chỉ với Vertex AI (frontend + localStorage).
+-- File này chỉ để tham khảo cho kiến trúc backend cũ.
+
 -- Enable pg_trgm extension for text search
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 

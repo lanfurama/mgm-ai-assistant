@@ -1,5 +1,4 @@
 import { Product, ProductStatus } from '../types';
-import { ProductModel } from '../models/Product';
 import { generateId } from '../utils/idGenerator';
 import { validateProductName, validateProductNames } from '../utils/validation';
 import { getProductDescriptions } from './geminiService';
